@@ -29,15 +29,13 @@ class CheXpertDataset(Dataset):
     url = 'https://us13.mailchimp.com/mctx/clicks?url=http%3A%2F%2Fdownload.cs.stanford.edu%2Fdeep%2FCheXpert-v1.0-small.zip&h=43e9a85ba260e8c46a7b22c9ba6ae81986affde1c7a21b9da19eea30b06772be&v=1&xid=c97dbc1502&uid=55365305&pool=contact_facing&subject=CheXpert-v1.0%3A+Subscription+Confirmed'
 
 
-    def __init__(self,path_to_main_folder,fold,transform=None,download=True,uncertainty="zeros"):
+    def __init__(self,path_to_main_folder,fold, transform=None,download=True,uncertainty="zeros",zip_file_path=None):
 
         self.transform = transform
         self.path_to_main_folder = path_to_main_folder
         if not os.path.exists(self.path_to_main_folder): os.makedirs(self.path_to_main_folder)
-
-        if (not os.path.exists(os.path.join(path_to_main_folder,'CheXpert-v1.0-small'))) and download:
-            print("Start Downloading CheXpert-v1.0-small'")
-            self.download_and_extract()
+    
+        self.initial_data_check(download=download, zip_file_path=zip_file_path)
 
         if fold == 'test':   #Use the validation set in the chexpert dataset as the test set
             self.df = pd.read_csv(os.path.join(path_to_main_folder,'CheXpert-v1.0-small','valid.csv'))
@@ -61,11 +59,28 @@ class CheXpertDataset(Dataset):
                            'Consolidation','Pneumonia','Atelectasis','Pneumothorax','Pleural Effusion','Pleural Other',
                            'Fracture','Support Devices']  #These are the 14 labels we try to predict
 
+
+    def initial_data_check(self, download, zip_file_path):
+        if (not os.path.exists(os.path.join(self.path_to_main_folder,'CheXpert-v1.0-small'))):
+            if os.path.exists(zip_file_path):
+                print('Extract file')
+                extract_archive(from_path=zip_file_path, to_path=self.path_to_main_folder)
+            elif download == True:
+                print("Start Downloading CheXpert-v1.0-small'")
+                self.download_and_extract()
+            else:
+                raise IOError('Data are not available and not zip file is provided or download is not activated')
+        else:
+            pass
+            
+
     def download_and_extract(self):
         filename='CheXpert-v1.0-small.zip'
-        download_and_extract_archive(url=self.url,download_root=self.path_to_main_folder, filename=filename, remove_finished=True)
-
-
+        print("Download: START")
+        download_and_extract_archive(url=self.url,
+                                     download_root=self.path_to_main_folder,
+                                     filename=filename, remove_finished=False)
+        print("Download: DONE")
     def __len__(self):
         return len(self.df)
 
@@ -145,14 +160,13 @@ class CheXpertDataset(Dataset):
         del df
         return pos_neg_sample_nums
 
-
-def createDatasets(path_to_main_folder, data_transforms, uncertainty):
-    # create train/val dataloaders
-    transformed_datasets = {}
-    transformed_datasets['train'] = CheXpertDataset(path_to_main_folder=path_to_main_folder, fold='train', transform=data_transforms['train'], uncertainty=uncertainty)
-    transformed_datasets['val'] = CheXpertDataset(path_to_main_folder=path_to_main_folder,fold='val',transform=data_transforms['val'],uncertainty=uncertainty)
-    transformed_datasets['test'] = CheXpertDataset(path_to_main_folder=path_to_main_folder,fold='test',transform=data_transforms['val'],uncertainty=uncertainty)
+# def createDatasets(path_to_main_folder, data_transforms, uncertainty):
+#     # create train/val dataloaders
+#     transformed_datasets = {}
+#     transformed_datasets['train'] = CheXpertDataset(path_to_main_folder=path_to_main_folder, fold='train', transform=data_transforms['train'], uncertainty=uncertainty)
+#     transformed_datasets['val'] = CheXpertDataset(path_to_main_folder=path_to_main_folder,fold='val',transform=data_transforms['val'],uncertainty=uncertainty)
+#     transformed_datasets['test'] = CheXpertDataset(path_to_main_folder=path_to_main_folder,fold='test',transform=data_transforms['val'],uncertainty=uncertainty)
     
-    return transformed_datasets
-datasets = createDatasets(path_to_main_folder='/content/datasets',data_transforms =dict(train=None, val=None),uncertainty='ones')
+#     return transformed_datasets
+# datasets = createDatasets(path_to_main_folder='/content/datasets',data_transforms =dict(train=None, val=None),uncertainty='ones')
 
