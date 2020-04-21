@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 import os
 from PIL import Image
 from sklearn.model_selection import train_test_split
-from torchvision.datasets.utils import download_and_extract_archive
+from torchvision.datasets.utils import download_and_extract_archive, extract_archive
 
 class CheXpertDataset(Dataset):
     """
